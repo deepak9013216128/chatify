@@ -94,7 +94,7 @@
 	<sys/types.h>
 	"utils.h"
 
-1647357494 /home/deepak/Desktop/chatify/server/include/utils.h
+1647682792 /home/deepak/Desktop/chatify/server/include/utils.h
 	<stdio.h>
 	<stdlib.h>
 	<netinet/in.h>
@@ -111,7 +111,8 @@
 1647605612 source:/home/deepak/Desktop/chatify/server/src/sql.c
 	"sql.h"
 
-1647606409 source:/home/deepak/Desktop/chatify/server/src/utils.c
+1647682560 source:/home/deepak/Desktop/chatify/server/src/utils.c
+	<string.h>
 	"utils.h"
 	"sql.h"
 

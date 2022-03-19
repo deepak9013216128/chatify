@@ -118,7 +118,6 @@ void *handle_client(void *arg){
                 dbPassword =sqlite3_column_text(res, 0);
             }
             if(dbPassword &&strcmp(dbPassword,password)==0){
-                puts(dbPassword);
                 sprintf(buff_out, "%s has joined\n", cli->name);
 
                 printf("%s", buff_out);
@@ -151,11 +150,15 @@ void *handle_client(void *arg){
 		if (leave_flag) {
 			break;
 		}
-
+		char msg[BUFFER_SZ];
+        strcat( msg,"[");
+        strcat(msg,cli->name);
+        strcat(msg,"]: ");
 		int receive = recv(cli->sockfd, buff_out, BUFFER_SZ, 0);
 		if (receive > 0){
 			if(strlen(buff_out) > 0){
-				send_message(buff_out, cli->uid);
+                strcat(msg,buff_out);
+				send_message(msg, cli->uid);
 
 				str_trim_lf(buff_out, strlen(buff_out));
 				printf("%s -> %s\n", buff_out, cli->name);
@@ -170,6 +173,7 @@ void *handle_client(void *arg){
 			leave_flag = 1;
 		}
 
+		bzero(msg, BUFFER_SZ);
 		bzero(buff_out, BUFFER_SZ);
 	}
 
