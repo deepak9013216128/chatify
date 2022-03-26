@@ -140,6 +140,7 @@ void * handle_client(void *arg){
         strcpy(query,"");
         int step = sqlite3_step(res);
         if (step != SQLITE_ROW) {
+			send(cli->sockfd,"Login Failed!",32,0);
         	delete_client(cli);
 			return NULL;
         }
@@ -165,11 +166,8 @@ void * handle_client(void *arg){
         sqlite3_stmt* res = getUserData(query);
         strcpy(query,"");
         strcpy(query,"");
-        int step = sqlite3_step(res);
-        if (step != SQLITE_ROW) {
-        	delete_client(cli);
-			return NULL;
-        }
+        sqlite3_step(res);
+        
         sprintf(buff_out, "%s has joined\n", cli->name);
 
         printf("%s", buff_out);

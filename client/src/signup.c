@@ -17,33 +17,12 @@ void signupButtonHandler(GtkWidget *widget, gpointer data){
         show_warning("Password must match!");
         return;
     }
+    gtk_widget_set_sensitive(signupButton, 0);
     username = gtk_entry_get_text(GTK_ENTRY(userNameEntry));
     password = gtk_entry_get_text(GTK_ENTRY(passwordEntry));
     connectToServer(username,password,"1");
-//    ip = gtk_entry_get_text(GTK_ENTRY(ipEntry));
-//    if(!ip || !*ip){
-//        gtk_widget_grab_focus(ipEntry);
-//        return;
-//    }
-//    port = gtk_entry_get_text(GTK_ENTRY(portEntry));
-//    if(!port || !*port)
-//    {
-//        gtk_widget_grab_focus(portEntry);
-//        return;
-//    }
-//    int iport;
-//    if(!sscanf(port, "%d", &iport))
-//    {
-//        gtk_label_set_text(GTK_LABEL(statusLabel), "Invalid port");
-//        return;
-//    }
-//    gtk_widget_set_sensitive(loginButton, 0);
-//    struct login_info *li = malloc(sizeof(struct login_info));
-//    li->ip = ip;
-//    li->iport = iport;
-//    li->login = login;
-//    li->password = password;
-//    pthread_create(&loginner, 0, login_thread, (void *)li);
+
+    gtk_widget_set_sensitive(signupButton, 1);
 }
 
 void signupForm(GtkWidget *window){

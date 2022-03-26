@@ -5,7 +5,6 @@
 #define LENGTH 2048
 
 // Global variables
-volatile sig_atomic_t flag = 0;
 int sockfd = 0;
 char name[32];
 pthread_t watcher;
@@ -25,9 +24,7 @@ void str_trim_lf (char* arr, int length) {
   }
 }
 
-void catch_ctrl_c_and_exit(int sig) {
-    flag = 1;
-}
+
 
 void send_msg_handler(gchar *message) {
 
@@ -37,13 +34,10 @@ void send_msg_handler(gchar *message) {
 			return;
     }
     send(sockfd, message, strlen(message), 0);
-    catch_ctrl_c_and_exit(2);
 }
 
-void *  recv_msg_handler(void *threadid) {
-    long tid;
-    tid = (long)threadid;
-	char msg[LENGTH] = {};
+void *  recv_msg_handler() {
+	char msg[LENGTH];
     while (1) {
         int receive = recv(sockfd, msg, LENGTH, 0);
         if (receive > 0) {
@@ -52,9 +46,7 @@ void *  recv_msg_handler(void *threadid) {
             str_overwrite_stdout();
         } else if (receive == 0) {
             break;
-        } else {
-//             -1
-        }
+        } 
         memset(msg, 0, sizeof(msg));
     }
 
@@ -77,7 +69,7 @@ int connectToServer(char* username, char *password,char *isLoginForm){
     int err = connect(sockfd, (struct sockaddr *)&server_addr, sizeof(server_addr));
     if (err == -1) {
         printf("ERROR: connect\n");
-        return "ERROR: connect\n";
+        return 0;
     }
 
 	printf("=== WELCOME TO THE CHATROOM ===\n");
@@ -110,7 +102,7 @@ int createSockit(){
 	char *ip = "127.0.0.1";
 	//int port = atoi(argv[1]);
     int port = 4444;
-	signal(SIGINT, catch_ctrl_c_and_exit);
+	signal(SIGINT,SIG_IGN);
 
 	printf("Please enter your name: ");
     fgets(name, 32, stdin);
@@ -156,12 +148,6 @@ int createSockit(){
 //        return EXIT_FAILURE;
 //    }
 
-//	while (1){
-//		if(flag){
-//			printf("\nBye\n");
-//			break;
-//        }
-//	}
 
 	close(sockfd);
 

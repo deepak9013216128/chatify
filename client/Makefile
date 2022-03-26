@@ -1,5 +1,5 @@
 CLIENT_FILES=main.c 
-GCC_FLAGS= -std=c99 -Wall -Wextra -pedantic -O2 -pthread -Iinclude -MMD -MP
+GCC_FLAGS= -std=c99 -w -pthread -Iinclude -MMD -MP
 
 SRC_DIR = src
 SRC := $(wildcard $(SRC_DIR)/*.c)
