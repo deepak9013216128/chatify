@@ -11,8 +11,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/types.h>
-#include "utils.h"
+#include "client.h"
 
-void createSockit();
-void listenSocktetConnection();
+int createSockit();
+int listenSocktetConnection();
 #endif // SOCKIT_H

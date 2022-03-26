@@ -2,11 +2,11 @@
 
 
 sqlite3 *db;
-char *err_msg = 0;
 
 int createSqlConnection(void) {
 
 
+    char *err_msg = 0;
     int rc = sqlite3_open("user.db", &db);
 
     if (rc != SQLITE_OK) {
@@ -41,8 +41,6 @@ int createSqlConnection(void) {
 
 int callback(void *NotUsed, int argc, char **argv, char **azColName) {
 
-    NotUsed = 0;
-
     for (int i = 0; i < argc; i++) {
 
         printf("%s = %s\n", azColName[i], argv[i] ? argv[i] : "NULL");
@@ -55,22 +53,23 @@ int callback(void *NotUsed, int argc, char **argv, char **azColName) {
 
 sqlite3_stmt* getUserData(char* sqlStatement){
 
-    int rc1 = sqlite3_exec(db, sqlStatement, callback, 0, &err_msg);
-//
-//    if (rc != SQLITE_OK ) {
-//
-//        fprintf(stderr, "Failed to select data\n");
-//        fprintf(stderr, "SQL error: %s\n", err_msg);
-//
-//        sqlite3_free(err_msg);
-//        closeSQLConnection();
-//
-//        return 1;
-//    }
+    char *err_msg;
+    int rc = sqlite3_exec(db, sqlStatement, callback, 0, &err_msg);
+
+   if (rc != SQLITE_OK ) {
+
+       fprintf(stderr, "Failed to select data\n");
+       fprintf(stderr, "SQL error: %s\n", err_msg);
+
+       sqlite3_free(err_msg);
+       closeSQLConnection();
+
+       return NULL;
+   }
     sqlite3_stmt* res;
     size_t t_len = strlen(sqlStatement);
-
-    int rc = sqlite3_prepare_v2(db, sqlStatement, t_len, &res, &err_msg);
+    const char *error;
+    rc = sqlite3_prepare_v2(db, sqlStatement, t_len, &res, &error);
 
     if (rc == SQLITE_OK){
 //        int step = sqlite3_step(res);
@@ -94,11 +93,11 @@ sqlite3_stmt* getUserData(char* sqlStatement){
     {
         // zErrMsg may have an error message. If not, the database object
         // may have one. Either way, you can find out what went wrong.
-        const char* err_msg = sqlite3_errmsg(db);
+        const char* error = sqlite3_errmsg(db);
         fprintf(stderr, "Failed to select data\n");
-        fprintf(stderr, "SQL error: %s\n", err_msg);
+        fprintf(stderr, "SQL error: %s\n", error);
 
-        sqlite3_free(err_msg);
+        sqlite3_free((void *)error);
         return NULL;
     }
 

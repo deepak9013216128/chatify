@@ -1,5 +1,7 @@
 #include "sockit.h"
 
+extern int cli_count;
+extern int uid;
 char *ip = "127.0.0.1";
 int port = 4444;//atoi(argv[1]);
 int option = 1;
@@ -8,7 +10,7 @@ struct sockaddr_in serv_addr;
 struct sockaddr_in cli_addr;
 pthread_t tid;
 
-void createSockit(){
+int createSockit(){
     //	if(argc != 2){
 //		printf("Usage: %s <port>\n", argv[0]);
 //		return EXIT_FAILURE;
@@ -25,7 +27,7 @@ void createSockit(){
     /* Ignore pipe signals */
     signal(SIGPIPE, SIG_IGN);
 
-    if(setsockopt(listenfd, SOL_SOCKET,(SO_REUSEPORT | SO_REUSEADDR),(char*)&option,sizeof(option)) < 0){
+    if(setsockopt(listenfd, SOL_SOCKET,(SO_REUSEADDR  ),(char*)&option,sizeof(option)) < 0){
         perror("ERROR: setsockopt failed");
         return EXIT_FAILURE;
     }
@@ -35,8 +37,9 @@ void createSockit(){
         perror("ERROR: Socket binding failed");
         return EXIT_FAILURE;
     }
+    return 0;
 }
-void listenSocktetConnection(){
+int listenSocktetConnection(){
 
     /* Listen */
     if (listen(listenfd, 10) < 0) {
