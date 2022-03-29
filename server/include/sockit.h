@@ -13,6 +13,6 @@
 #include <sys/types.h>
 #include "client.h"
 
-int createSockit();
+int createSockit(int argc, char *argv[]);
 int listenSocktetConnection();
 #endif // SOCKIT_H

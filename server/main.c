@@ -14,10 +14,10 @@
 #include "sql.h"
 
 
-int main(){
+int main(int argc, char *argv[]){
 
 
-    createSockit();
+    createSockit(argc, argv);
     createSqlConnection();
 	printf("=== WELCOME TO THE CHATIFY ===\n");
     getUserData("SELECT * FROM Users WHERE username = 'test'");

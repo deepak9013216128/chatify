@@ -5,6 +5,11 @@ unsigned int cli_count = 0;
 int uid = 10;
 client_t *clients[MAX_CLIENTS];
 
+char loginFailed[] = "Login Failed!";
+char success[] = "success";
+char query[BUFFER_SZ];
+char buff_out[BUFFER_SZ];
+
 pthread_mutex_t clients_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 void str_overwrite_stdout(){
@@ -70,7 +75,7 @@ void send_message_to_all(char *s, int uid){
 	for(int i=0; i<MAX_CLIENTS; ++i){
 		if(clients[i]){
 			if(clients[i]->uid != uid){
-				if(send(clients[i]->sockfd, s, strlen(s),0) < 0){
+				if(SSL_write(clients[i]->ssl, s, BUFFER_SZ) <= 0){
 					perror("ERROR: write to descriptor failed");
 					break;
 				}
@@ -82,11 +87,11 @@ void send_message_to_all(char *s, int uid){
 }
 void send_message(char *s, int uid){
 	pthread_mutex_lock(&clients_mutex);
-
+	
 	for(int i=0; i<MAX_CLIENTS; ++i){
 		if(clients[i]){
 			if(clients[i]->uid != uid){
-				if(send(clients[i]->sockfd, s, strlen(s),0) < 0){
+				if(SSL_write(clients[i]->ssl, s, BUFFER_SZ) <= 0){
 					perror("ERROR: write to descriptor failed");
 					break;
 				}
@@ -106,77 +111,95 @@ void delete_client(client_t *cli ){
     pthread_detach(pthread_self());
 }
 
+int login(client_t *cli,char *username, char* password){
+
+	strcat( query,"SELECT password from Users WHERE username = '");
+    strcat(query,username);
+    strcat(query,"' AND password = '");
+    strcat(query,password);
+    strcat(query,"'");
+    sqlite3_stmt* res = getUserData(query);
+    puts(query);
+    int step = sqlite3_step(res);
+    if (step != SQLITE_ROW) {
+    	SSL_write(cli->ssl, loginFailed, sizeof(loginFailed));
+    	// delete_client(cli);
+		return 0;
+    }
+    const char *dbPassword = (const char *)sqlite3_column_text(res, 0);
+    if(dbPassword &&strcmp(dbPassword,password)==0){
+        sprintf(buff_out, "%s has joined\n", username);
+        SSL_write(cli->ssl,success,sizeof(success));
+        send_message_to_all(buff_out, cli->uid);
+        return 1;
+    }
+    SSL_write(cli->ssl,loginFailed,sizeof(loginFailed));
+    // delete_client(cli);
+	return 0;
+}
+
+int signup(client_t *cli, char * username, char * password) {
+
+	strcat(query,"INSERT INTO Users (username, password, ip, port) VALUES('");
+    strcat(query,username);
+    strcat(query,"', '");
+    strcat(query,password);
+    strcat(query,"', '127.0.0.1', 4444);");
+    puts(query);
+    sqlite3_stmt* res = getUserData(query);
+    sqlite3_step(res);
+    
+    sprintf(buff_out, "%s has joined\n", cli->name);
+    SSL_write(cli->ssl,success,sizeof(success));
+    send_message_to_all(buff_out, cli->uid);
+    return 1;
+}
+
 /* Handle all communication with the client */
 void * handle_client(void *arg){
 	char buff_out[BUFFER_SZ];
-	char username[32];
-    char password[32];
-    char isLogin[2]="0";
+	char username[BUFFER_SZ];
+    char password[BUFFER_SZ];
+    char isLogin[BUFFER_SZ]="0";
 	int leave_flag = 0;
 
 	cli_count++;
 	client_t *cli = (client_t *)arg;
 
-	recv(cli->sockfd, username, 32, 0);
-    strcpy(cli->name, username);
-    recv(cli->sockfd, password, 32, 0);
-    recv(cli->sockfd, isLogin, 2, 0);
+   	while(1){
+   		if(leave_flag){
+    		strcpy(cli->name,username);
+   			break;
+   		}
+   		bzero(username, BUFFER_SZ);
+		bzero(password, BUFFER_SZ);
+		bzero(isLogin, BUFFER_SZ);
 
-	if( strlen(username) < 2){
-		printf("Didn't enter the name.\n");
-		send(cli->sockfd,"Login Failed!",32,0);
-		delete_client(cli);
-		return NULL;
-	} 
-
-    char query[BUFFER_SZ];
-    if(strcmp(isLogin,"0")==0){
-        strcat( query,"SELECT password from Users WHERE username = '");
-        strcat(query,cli->name);
-        strcat(query,"' AND password = '");
-        strcat(query,password);
-        strcat(query,"'");
-        sqlite3_stmt* res = getUserData(query);
-        strcpy(query,"");
-        int step = sqlite3_step(res);
-        if (step != SQLITE_ROW) {
-			send(cli->sockfd,"Login Failed!",32,0);
-        	delete_client(cli);
+		if(
+			SSL_read(cli->ssl, username, sizeof(username))<=0 ||
+			SSL_read(cli->ssl, password, sizeof(password)) <=0 ||
+			SSL_read(cli->ssl, isLogin, sizeof(isLogin)) <=0
+		){
+			delete_client(cli);
 			return NULL;
-        }
-        const char *dbPassword = (const char *)sqlite3_column_text(res, 0);
-        if(dbPassword &&strcmp(dbPassword,password)==0){
-            sprintf(buff_out, "%s has joined\n", cli->name);
+		}
 
-            printf("%s", buff_out);
-            send(cli->sockfd,"success",32,0);
-            send_message_to_all(buff_out, cli->uid);
-        }else{
-            send(cli->sockfd,"Login Failed!",32,0);
-            delete_client(cli);
-			return NULL;
-        }
-    }else{
-        strcat(query,"INSERT INTO Users (username, password, ip, port) VALUES('");
-        strcat(query,cli->name);
-        strcat(query,"', '");
-        strcat(query,password);
-        strcat(query,"', '127.0.0.1', 4444);");
-        puts(query);
-        sqlite3_stmt* res = getUserData(query);
-        strcpy(query,"");
-        strcpy(query,"");
-        sqlite3_step(res);
-        
-        sprintf(buff_out, "%s has joined\n", cli->name);
+		if( strlen(username) < 2 && strlen(password) < 2){
+			printf("Didn't enter the name and password.\n");
+			SSL_write(cli->ssl,loginFailed,sizeof(loginFailed));
+			// delete_client(cli);
+			continue;
+		}
+    	if(strcmp(isLogin,"0")==0){
+    		leave_flag = login(cli,username,password);
+    	}else if(strcmp(isLogin,"1")==0){
+    		leave_flag = signup(cli,username,password);
+    	}
+		bzero(buff_out, BUFFER_SZ);
+		bzero(query, BUFFER_SZ);
+   	}
 
-        printf("%s", buff_out);
-        send(cli->sockfd,"success",32,0);
-        send_message_to_all(buff_out, cli->uid);
-    }
-	
-
-	bzero(buff_out, BUFFER_SZ);
+	leave_flag = 0;
 
 	while(1){
 		if (leave_flag) {
@@ -186,7 +209,7 @@ void * handle_client(void *arg){
         strcat( msg,"[");
         strcat(msg,cli->name);
         strcat(msg,"]: ");
-		int receive = recv(cli->sockfd, buff_out, BUFFER_SZ, 0);
+		int receive = SSL_read(cli->ssl, buff_out, BUFFER_SZ);
 		if (receive > 0){
 			if(strlen(buff_out) > 0){
                 strcat(msg,buff_out);
@@ -197,7 +220,6 @@ void * handle_client(void *arg){
 			}
 		} else if (receive == 0 || strcmp(buff_out, "exit") == 0){
 			sprintf(buff_out, "%s has left\n", cli->name);
-			printf("%s", buff_out);
 			send_message(buff_out, cli->uid);
 			leave_flag = 1;
 		} else {
@@ -209,12 +231,6 @@ void * handle_client(void *arg){
 		bzero(buff_out, BUFFER_SZ);
 	}
 	delete_client(cli);
- //  /* Delete client from queue and yield thread */
-	// close(cli->sockfd);
- //    queue_remove(cli->uid);
- //    free(cli);
- //    cli_count--;
- //    pthread_detach(pthread_self());
 
 	return NULL;
 }

@@ -1,5 +1,5 @@
 #include "sql.h"
-
+#include <stdlib.h>
 
 sqlite3 *db;
 
@@ -63,7 +63,7 @@ sqlite3_stmt* getUserData(char* sqlStatement){
 
        sqlite3_free(err_msg);
        closeSQLConnection();
-
+       exit(1);
        return NULL;
    }
     sqlite3_stmt* res;

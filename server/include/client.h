@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <netinet/in.h>
 #include <pthread.h>
+#include "ssl.h"
 
 #define MAX_CLIENTS 100
 #define BUFFER_SZ 1024
@@ -15,6 +16,7 @@ typedef struct{
 	int sockfd;
 	int uid;
 	char name[32];
+	SSL *ssl;
 } client_t;
 
 void str_overwrite_stdout();

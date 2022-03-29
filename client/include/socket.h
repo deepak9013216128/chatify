@@ -25,6 +25,7 @@ void str_trim_lf (char* arr, int length);
 void send_msg_handler(gchar *msg) ;
 void* recv_msg_handler() ;
 int connectToServer(char* username, char *password,char *isLoginForm);
+int createSockit(int argc, char *argv[]);
 
 //void serialize_X(struct User *x, struct Buffer *output) {
 //    serialize_string(x->ip, output);

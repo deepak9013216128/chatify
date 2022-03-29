@@ -5,4 +5,4 @@ SRC_DIR = src
 SRC := $(wildcard $(SRC_DIR)/*.c)
 
 all: 
-	gcc $(GCC_FLAGS) ${SRC} $(CLIENT_FILES) `pkg-config --cflags --libs gtk+-3.0` -o ../chat_client
+	gcc $(GCC_FLAGS) ${SRC} $(CLIENT_FILES) `pkg-config --cflags --libs gtk+-3.0` -lssl -lcrypto -o ../chat_client

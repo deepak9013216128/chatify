@@ -1,6 +1,7 @@
 #include "socket.h"
 #include "window.h"
 #include "chat.h"
+#include "ssl.h"
 
 #define LENGTH 2048
 
@@ -8,6 +9,7 @@
 int sockfd = 0;
 char name[32];
 pthread_t watcher;
+SSL *ssl;
 
 void str_overwrite_stdout() {
   printf("%s", "> ");
@@ -24,8 +26,6 @@ void str_trim_lf (char* arr, int length) {
   }
 }
 
-
-
 void send_msg_handler(gchar *message) {
 
     if (strcmp(message, "exit") == 0) {
@@ -33,13 +33,13 @@ void send_msg_handler(gchar *message) {
             closeWindow();
 			return;
     }
-    send(sockfd, message, strlen(message), 0);
+    SSL_write(ssl, message, strlen(message));
 }
 
 void *  recv_msg_handler() {
 	char msg[LENGTH];
     while (1) {
-        int receive = recv(sockfd, msg, LENGTH, 0);
+        int receive = SSL_read(ssl, msg, LENGTH);
         if (receive > 0) {
             printf("%s", msg);
             recv_item(msg);
@@ -55,29 +55,15 @@ void *  recv_msg_handler() {
 
 
 int connectToServer(char* username, char *password,char *isLoginForm){
-    char *ip = "127.0.0.1";
-    int port = 4444;
-    struct sockaddr_in server_addr;
 
-	/* Socket settings */
-    sockfd = socket(AF_INET, SOCK_STREAM, 0);
-    server_addr.sin_family = AF_INET;
-    server_addr.sin_addr.s_addr = inet_addr(ip);
-    server_addr.sin_port = htons(port);
+    SSL_write(ssl, username, sizeof(username)); 
+    SSL_write(ssl, password, sizeof(password));
+    SSL_write(ssl, isLoginForm, sizeof(isLoginForm)); 
 
-  // Connect to Server
-    int err = connect(sockfd, (struct sockaddr *)&server_addr, sizeof(server_addr));
-    if (err == -1) {
-        printf("ERROR: connect\n");
-        return 0;
-    }
-
-	printf("=== WELCOME TO THE CHATROOM ===\n");
-	send(sockfd, username, 32, 0);
-	send(sockfd, password, 32, 0);
-	send(sockfd, isLoginForm, 32, 0);
     char msg[100];
-    recv(sockfd, msg,32,0);
+    int bytes;
+    bytes = SSL_read(ssl, msg, sizeof(msg));
+  ;
     if(strcmp(msg,"success") == 0){
         show_info(msg);
         hideAuthForm();
@@ -93,26 +79,21 @@ int connectToServer(char* username, char *password,char *isLoginForm){
     show_error(msg);
 	return 0;
 }
-int createSockit(){
-//	if(argc != 2){
-//		printf("Usage: %s <port>\n", argv[0]);
-//		return EXIT_FAILURE;
-//	}
+int createSockit(int argc, char *argv[]){
 
-	char *ip = "127.0.0.1";
-	//int port = atoi(argv[1]);
-    int port = 4444;
+	if(argc != 3){
+		printf("Usage: %s <port>\n", argv[0]);
+		return EXIT_FAILURE;
+	}
+
+	char *ip = argv[1]?argv[1]:"127.0.0.1";
+	int port = atoi(argv[2])?atoi(argv[2]):4444;
 	signal(SIGINT,SIG_IGN);
 
-	printf("Please enter your name: ");
-    fgets(name, 32, stdin);
-    str_trim_lf(name, strlen(name));
+     // Initialize the SSL library
+    SSL_CTX *ctx;
+    ctx = InitCTX();  
 
-
-//	if (strlen(name) > 32 || strlen(name) < 2){
-//		printf("Name must be less than 30 and more than 2 characters.\n");
-//		return EXIT_FAILURE;
-//	}
 
 	struct sockaddr_in server_addr;
 
@@ -121,35 +102,36 @@ int createSockit(){
     server_addr.sin_family = AF_INET;
     server_addr.sin_addr.s_addr = inet_addr(ip);
     server_addr.sin_port = htons(port);
-
+    puts(ip);
+    printf("%d\n",port);
 
   // Connect to Server
     int err = connect(sockfd, (struct sockaddr *)&server_addr, sizeof(server_addr));
     if (err == -1) {
         printf("ERROR: connect\n");
+        close(sockfd);
         return EXIT_FAILURE;
     }
+    puts(ip);
+    printf("%d\n",port);
+    // ===================================== SSL ===================================== //
+    ssl = SSL_new(ctx);      /* create new SSL connection state */
+    SSL_set_fd(ssl, sockfd);    /* attach the socket descriptor */  
+    if ( SSL_connect(ssl) == FAIL ) {  /* perform the connection */
+        ERR_print_errors_fp(stderr);
+        close(sockfd);
+        return EXIT_FAILURE;
+    }
+
+    ShowCerts(ssl);        /* get any certs */
+    // ===================================== SSL ===================================== //
+    
+
 	printf("=== WELCOME TO THE CHATROOM ===\n");
 
-	// Send name
-	send(sockfd, name, 32, 0);
 
-
-//	pthread_t send_msg_thread;
-
-//    if(pthread_create(&send_msg_thread, NULL, (void *) send_msg_handler, NULL) != 0){
-//        printf("ERROR: pthread\n");
-//        return EXIT_FAILURE;
-//    }
-//
-//	pthread_t recv_msg_thread;
-//    if(pthread_create(&recv_msg_thread, NULL, (void *) recv_msg_handler, NULL) != 0){
-//        printf("ERROR: pthread\n");
-//        return EXIT_FAILURE;
-//    }
-
-
-	close(sockfd);
+    // close(sockfd);          close socket 
+    // SSL_CTX_free(ctx);        /* release context */
 
 	return EXIT_SUCCESS;
 }

@@ -5,4 +5,4 @@ SRC_DIR = src
 SRC := $(wildcard $(SRC_DIR)/*.c)
 
 all: 
-	gcc $(GCC_FLAGS) $(SRC)  $(SERVER_FILES) -lsqlite3 -o ../chat_server
+	gcc $(GCC_FLAGS) $(SRC)  $(SERVER_FILES) -lsqlite3 -lssl -lcrypto -o ../chat_server
