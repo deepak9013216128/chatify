@@ -54,7 +54,7 @@ int callback(void *NotUsed, int argc, char **argv, char **azColName) {
 sqlite3_stmt* getUserData(char* sqlStatement){
 
     char *err_msg;
-    int rc = sqlite3_exec(db, sqlStatement, callback, 0, &err_msg);
+    int rc ;//= sqlite3_exec(db, sqlStatement, callback, 0, &err_msg);
 
    if (rc != SQLITE_OK ) {
 

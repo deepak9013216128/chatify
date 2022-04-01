@@ -201,6 +201,9 @@ void * handle_client(void *arg){
 
 	leave_flag = 0;
 
+	/* Add client to the queue and fork thread */
+	queue_add(cli);
+	
 	while(1){
 		if (leave_flag) {
 			break;

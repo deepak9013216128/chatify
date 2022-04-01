@@ -92,10 +92,6 @@ int listenSocktetConnection(){
         cli->uid = uid++;
         cli->ssl = ssl;
 
-        /* Add client to the queue and fork thread */
-        queue_add(cli);
-
-
         pthread_create(&tid, NULL, &handle_client, (void*)cli);
 
         /* Reduce CPU usage */
