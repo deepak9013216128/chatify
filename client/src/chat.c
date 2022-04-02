@@ -2,14 +2,13 @@
 #include "chat.h"
 #include "socket.h"
 
-extern GtkWidget *chatBox;
-enum {
+GtkWidget *chatBox;
+GtkWidget *list;
 
+enum {
   LIST_ITEM = 0,
   N_COLUMNS
 };
-
-GtkWidget *list;
 
 void welcome(){
     GtkListStore *store;
@@ -106,11 +105,15 @@ void init_list(GtkWidget *list) {
   g_object_unref(store);
 }
 
-int chatForm(int argc, char *argv[]) {
+void handleLogout(GtkWidget *widget){
+  logout();
+}
+
+int chatForm() {
 
   GtkWidget *sw;
 
-  GtkWidget *remove, *add,*removeAll, *welcomeLabel;
+  GtkWidget *remove, *add,*removeAll, *logoutButton, *welcomeLabel;
   GtkWidget *entry;
 
   GtkWidget *mainBox;
@@ -118,14 +121,14 @@ int chatForm(int argc, char *argv[]) {
 
   GtkTreeSelection *selection;
 
-  gtk_init(&argc, &argv);
 
-  chatBox = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+  // chatBox = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+  chatBox =  gtk_box_new(TRUE, 0);
 
-  gtk_window_set_title(GTK_WINDOW(chatBox), "Chatify");
-  gtk_window_set_position(GTK_WINDOW(chatBox), GTK_WIN_POS_CENTER);
-  gtk_container_set_border_width(GTK_CONTAINER (chatBox), 10);
-  gtk_widget_set_size_request(chatBox, 370, 270);
+  // gtk_window_set_title(GTK_WINDOW(chatBox), "Chatify");
+  // gtk_window_set_position(GTK_WINDOW(chatBox), GTK_WIN_POS_CENTER);
+  // gtk_container_set_border_width(GTK_CONTAINER (chatBox), 10);
+  // gtk_widget_set_size_request(chatBox, 370, 270);
 
 
   mainBox = gtk_vbox_new(FALSE, 0);
@@ -133,10 +136,12 @@ int chatForm(int argc, char *argv[]) {
   welcomeLabel = gtk_label_new("Welcome To Chatify");
   remove = gtk_button_new_with_label("Remove");
   removeAll = gtk_button_new_with_label("Remove All");
+  logoutButton = gtk_button_new_with_label("Log out");
 
   gtk_box_pack_start(GTK_BOX(header), welcomeLabel, FALSE, TRUE, 3);
   gtk_box_pack_start(GTK_BOX(header), remove, FALSE, TRUE, 3);
   gtk_box_pack_start(GTK_BOX(header), removeAll, FALSE, TRUE, 3);
+  gtk_box_pack_start(GTK_BOX(header), logoutButton, FALSE, TRUE, 3);
   gtk_box_pack_start(GTK_BOX(mainBox), header, FALSE, TRUE, 3);
 
   sw = gtk_scrolled_window_new(NULL, NULL);
@@ -174,12 +179,10 @@ int chatForm(int argc, char *argv[]) {
   g_signal_connect(G_OBJECT(remove), "clicked", G_CALLBACK(remove_item), selection);
 
   g_signal_connect(G_OBJECT(removeAll), "clicked", G_CALLBACK(remove_all), selection);
+  g_signal_connect(G_OBJECT(logoutButton), "clicked", G_CALLBACK(handleLogout), NULL);
 
   g_signal_connect(G_OBJECT(chatBox), "destroy", G_CALLBACK(gtk_main_quit), NULL);
 
-//
-//  gtk_widget_show_all(window);
-//
-//  gtk_main();
+  // gtk_widget_show_all(chatBox);
   return chatBox;
 }

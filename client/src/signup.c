@@ -1,4 +1,5 @@
 #include "signup.h"
+#include "path.h"
 
 static GtkWidget *usernameLabel,*passwordLabel,*confirmPasswordLabel;
 static GtkWidget *userNameEntry,*passwordEntry, *confirmPasswordEntry;
@@ -20,7 +21,7 @@ void signupButtonHandler(GtkWidget *widget, gpointer data){
     gtk_widget_set_sensitive(signupButton, 0);
     username = gtk_entry_get_text(GTK_ENTRY(userNameEntry));
     password = gtk_entry_get_text(GTK_ENTRY(passwordEntry));
-    connectToServer(username,password,"1");
+    connectToServer(username,password,SIGNUP);
 
     gtk_widget_set_sensitive(signupButton, 1);
 }

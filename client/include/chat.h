@@ -3,6 +3,6 @@
 
 
 
-int chatForm(int argc, char *argv[]);
+int chatForm();
 void recv_item(char *msg);
 #endif // CHAT_H

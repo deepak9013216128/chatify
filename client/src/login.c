@@ -1,16 +1,19 @@
 #include "login.h"
+#include "path.h"
 
-static GtkWidget *loginUsernameLabel,*loginPasswordLabel;
-static GtkWidget *loginUserNameEntry,*loginPasswordEntry;
-static GtkWidget *cancelButton,*loginButton;
+GtkWidget *loginUsernameLabel, *loginPasswordLabel;
+GtkWidget *loginUserNameEntry, *loginPasswordEntry;
+GtkWidget *cancelButton, *loginButton;
 
-void loginButtonHandler(GtkWidget *widget, gpointer data){
-    (void) widget;
-    (void) data;
-    if(!gtk_widget_get_sensitive(loginButton))
+void loginButtonHandler(GtkWidget *widget, gpointer data)
+{
+    (void)widget;
+    (void)data;
+    if (!gtk_widget_get_sensitive(loginButton))
         return;
     const gchar *ip, *port, *username, *password;
-    if(isEmptyText(loginUserNameEntry) || isEmptyText(loginPasswordEntry) ){
+    if (isEmptyText(loginUserNameEntry) || isEmptyText(loginPasswordEntry))
+    {
         return;
     }
 
@@ -18,12 +21,12 @@ void loginButtonHandler(GtkWidget *widget, gpointer data){
     password = gtk_entry_get_text(GTK_ENTRY(loginPasswordEntry));
 
     gtk_widget_set_sensitive(loginButton, 0);
-    connectToServer(username,password,"0");
+    connectToServer(username, password, LOGIN);
     gtk_widget_set_sensitive(loginButton, 1);
-
 }
 
-void loginForm(GtkWidget *window){
+void loginForm(GtkWidget *window)
+{
 
     GtkWidget *table;
 
@@ -44,23 +47,21 @@ void loginForm(GtkWidget *window){
     gtk_table_attach(GTK_TABLE(table), loginPasswordEntry, 1, 2, 1, 2, GTK_FILL | GTK_SHRINK, GTK_FILL | GTK_SHRINK, 5, 5);
 
     gtk_table_attach(GTK_TABLE(table), loginButton, 1, 2, 2, 3, GTK_FILL | GTK_SHRINK, GTK_FILL | GTK_SHRINK, 5, 5);
-//    struct GdkRGBA {
-//      gdouble red;
-//      gdouble green;
-//      gdouble blue;
-//      gdouble alpha;
-//    };
-//     struct GdkRGBA rgba;
-//    rgba.red=1;
-//    rgba.blue=0;
-//    rgba.green=0;
-//    rgba.alpha=0;
-//    const struct GdkRGBA *color = &rgba;
-//  GtkWidget *button1;
-//  button1 = gtk_color_button_new_with_rgba (color);
-//    gtk_table_attach(GTK_TABLE(table), button1, 1, 2, 2, 3, GTK_FILL | GTK_SHRINK, GTK_FILL | GTK_SHRINK, 5, 5);
-    g_signal_connect(cancelButton, "clicked",G_CALLBACK(gtk_main_quit), NULL);
-    g_signal_connect(loginButton, "clicked",G_CALLBACK(loginButtonHandler), NULL);
-
+    //    struct GdkRGBA {
+    //      gdouble red;
+    //      gdouble green;
+    //      gdouble blue;
+    //      gdouble alpha;
+    //    };
+    //     struct GdkRGBA rgba;
+    //    rgba.red=1;
+    //    rgba.blue=0;
+    //    rgba.green=0;
+    //    rgba.alpha=0;
+    //    const struct GdkRGBA *color = &rgba;
+    //  GtkWidget *button1;
+    //  button1 = gtk_color_button_new_with_rgba (color);
+    //    gtk_table_attach(GTK_TABLE(table), button1, 1, 2, 2, 3, GTK_FILL | GTK_SHRINK, GTK_FILL | GTK_SHRINK, 5, 5);
+    g_signal_connect(cancelButton, "clicked", G_CALLBACK(gtk_main_quit), NULL);
+    g_signal_connect(loginButton, "clicked", G_CALLBACK(loginButtonHandler), NULL);
 }
-

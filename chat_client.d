@@ -596,8 +596,7 @@
  /usr/include/gtk-3.0/gtk/deprecated/gtkvscale.h \
  /usr/include/gtk-3.0/gtk/deprecated/gtkvscrollbar.h \
  /usr/include/gtk-3.0/gtk/deprecated/gtkvseparator.h \
- /usr/include/gtk-3.0/gtk/gtk-autocleanups.h include/auth.h \
- include/chat.h
+ /usr/include/gtk-3.0/gtk/gtk-autocleanups.h include/auth.h
 
 include/window.h:
 
@@ -1890,5 +1889,3 @@ include/window.h:
 /usr/include/gtk-3.0/gtk/gtk-autocleanups.h:
 
 include/auth.h:
-
-include/chat.h:

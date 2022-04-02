@@ -68,7 +68,6 @@ int listenSocktetConnection(){
         /* Check if max clients is reached */
         if((cli_count + 1) == MAX_CLIENTS){
             printf("Max clients reached. Rejected: \n");
-            print_client_addr(cli_addr);
             printf(":%d\n", cli_addr.sin_port);
             close(connfd);
             continue;

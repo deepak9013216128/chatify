@@ -3,5 +3,5 @@
 
 #include <gtk/gtk.h>
 
-void authFrom(GtkWidget *window);
+void authFrom();
 #endif // AUTH_H
