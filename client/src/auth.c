@@ -28,6 +28,7 @@ void toggleForm(GtkWidget *widget, gpointer data){
         gtk_widget_show_all(signupBox);
         activeForm=1;
     }
+    resizeWindow();
 }
 
 void authFrom(){
@@ -55,6 +56,9 @@ void authFrom(){
     gtk_container_add(GTK_CONTAINER(authBox), signupBox);
 
     loginForm(loginBox);
+    gtk_container_add(GTK_CONTAINER(window), authBox);
+
+    resizeWindow();
     // gtk_widget_show_all(authBox);
 }
 

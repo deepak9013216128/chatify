@@ -41,6 +41,7 @@ void send_msg_handler(gchar *message)
     {
         close(sockfd);
         closeWindow();
+        exit(0);
         return;
     }
     SSL_write(ssl, SENDALL, strlen(SENDALL));
@@ -72,9 +73,9 @@ void *recv_msg_handler()
 void logout()
 {
     g_print("logout");
-    close(sockfd);
-    pthread_cancel(watcher);
-    authFrom();
+    SSL_write(ssl, LOGOUT, sizeof(LOGOUT));
+    pthread_detach(watcher);
+    // closeWindow();
     changeWidget(chatBox, authBox);
 }
 
@@ -84,18 +85,19 @@ int connectToServer(char *username, char *password, char *isLoginForm)
     SSL_write(ssl, isLoginForm, sizeof(isLoginForm));
     SSL_write(ssl, username, sizeof(username));
     SSL_write(ssl, password, sizeof(password));
-
+    g_print("reading");
     char msg[100];
     int bytes;
     bytes = SSL_read(ssl, msg, sizeof(msg));
-    if (strcmp(msg, "success") == 0)
+
+    g_print(msg);
+    if (bytes > 0 && strcmp(msg, "success") == 0)
     {
         show_info(msg);
         int rc = 0;
         int i = 0;
-        rc = pthread_create(&watcher, NULL, recv_msg_handler, (void *)i);
-        chatForm();
         changeWidget(authBox, chatBox);
+        rc = pthread_create(&watcher, NULL, recv_msg_handler, (void *)i);
         if (rc)
         {
             printf("Error:unable to create thread, %d\n", rc);

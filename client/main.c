@@ -1,15 +1,13 @@
-#include<window.h>
+#include "window.h" 
 #include "auth.h"
 
 extern GtkWidget *authBox;
-
+extern GtkWidget *chatBox;
 int main(int argc, char *argv[]) {
     createSockit(argc,argv);
-    GtkWidget *window;
-    window = createWindow(argc,argv);
+    createWindow(argc,argv);
     authFrom();
     chatForm();
-    changeWidget(NULL,authBox);
-    showWindow();
+    changeWidget(chatBox, authBox);
     return 0;
 }

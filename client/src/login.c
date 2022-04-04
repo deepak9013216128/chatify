@@ -20,9 +20,9 @@ void loginButtonHandler(GtkWidget *widget, gpointer data)
     username = gtk_entry_get_text(GTK_ENTRY(loginUserNameEntry));
     password = gtk_entry_get_text(GTK_ENTRY(loginPasswordEntry));
 
-    gtk_widget_set_sensitive(loginButton, 0);
+    // gtk_widget_set_sensitive(loginButton, 0);
     connectToServer(username, password, LOGIN);
-    gtk_widget_set_sensitive(loginButton, 1);
+    // gtk_widget_set_sensitive(loginButton, 1);
 }
 
 void loginForm(GtkWidget *window)

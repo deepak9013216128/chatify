@@ -265,14 +265,21 @@ void *handle_client(void *arg)
 		memset(buff_out, 0, sizeof(buff_out));
 		if (SSL_read(cli->ssl, buff_out, sizeof(buff_out) - 1) > 0)
 		{
-
 			// Cases of different requests. Else case serves for standard messages.
-			if (strncmp(buff_out, "/login", 5) == 0)
+			if (strncmp(buff_out, LOGIN, strlen(LOGIN)) == 0)
 				login(cli);
-			else if (strncmp(buff_out, "/signup", 6) == 0)
+			else if (strncmp(buff_out, SIGNUP, strlen(SIGNUP)) == 0)
 				signup(cli);
-			else if (strncmp(buff_out, "/sendall", 7) == 0)
+			else if (strncmp(buff_out, SENDALL, strlen(SENDALL)) == 0)
 				send_all(cli);
+			else if (strncmp(buff_out, LOGOUT, strlen(LOGOUT)) == 0){
+				memset(buff_out, 0, sizeof(buff_out));
+				sprintf(buff_out, "%s has left\n", cli->name);
+				str_overwrite_stdout();
+				send_message_to_all(buff_out, cli->uid);
+				queue_remove(cli->uid);
+				pthread_detach(pthread_self());
+			}
 		}
 		else
 		{
