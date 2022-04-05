@@ -1,5 +1,6 @@
 #include "client.h"
 #include "sql.h"
+#include "path.h"
 
 unsigned int cli_count = 0;
 int uid = 10;
@@ -253,6 +254,27 @@ void send_all(client_t *cli)
 	memset(msg, 0, sizeof(msg));
 }
 
+void handle_who(client_t *cli)
+{
+
+	pthread_mutex_lock(&clients_mutex);
+	char res[BUFFER_SZ];
+	strcat(res, "List of online user are:\n");
+	for (int i = 0; i < MAX_CLIENTS; ++i)
+	{
+		if (clients[i] && clients[i]->uid != cli->uid)
+		{
+			strcat(res, clients[i]->name);
+			strcat(res, " \n");
+		}
+	}
+	if (SSL_write(cli->ssl, res, BUFFER_SZ) <= 0)
+	{
+		perror("ERROR: write to descriptor failed");
+	}
+	memset(res,0,sizeof(res));
+	pthread_mutex_unlock(&clients_mutex);
+}
 /* Handle all communication with the client */
 void *handle_client(void *arg)
 {
@@ -272,7 +294,10 @@ void *handle_client(void *arg)
 				signup(cli);
 			else if (strncmp(buff_out, SENDALL, strlen(SENDALL)) == 0)
 				send_all(cli);
-			else if (strncmp(buff_out, LOGOUT, strlen(LOGOUT)) == 0){
+			else if (strncmp(buff_out, WHO, strlen(WHO)) == 0)
+				handle_who(cli);
+			else if (strncmp(buff_out, LOGOUT, strlen(LOGOUT)) == 0)
+			{
 				memset(buff_out, 0, sizeof(buff_out));
 				sprintf(buff_out, "%s has left\n", cli->name);
 				str_overwrite_stdout();

@@ -10,12 +10,12 @@
 #include "openssl/ssl.h"
 #include "openssl/err.h"
 
-#define FAIL    -1
+#define FAIL -1
 
 int OpenListener(int port);
 int isRoot();
-SSL_CTX* InitServerCTX(void);
-void LoadCertificates(SSL_CTX* ctx, char* CertFile, char* KeyFile);
-void ShowCerts(SSL* ssl);
-void Servlet(SSL* ssl);
+SSL_CTX *InitServerCTX(void);
+void LoadCertificates(SSL_CTX *ctx, char *CertFile, char *KeyFile);
+void ShowCerts(SSL *ssl);
+void Servlet(SSL *ssl);
 int createSSLConnection(int count, char *Argc[]);

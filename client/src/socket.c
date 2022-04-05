@@ -36,7 +36,7 @@ void str_trim_lf(char *arr, int length)
 
 void send_msg_handler(gchar *message)
 {
-
+    g_print(message);
     if (strcmp(message, "exit") == 0)
     {
         close(sockfd);
@@ -44,8 +44,12 @@ void send_msg_handler(gchar *message)
         exit(0);
         return;
     }
-    SSL_write(ssl, SENDALL, strlen(SENDALL));
-    SSL_write(ssl, message, strlen(message));
+    else if(strncmp(message,WHO,strlen(WHO))==0){
+        SSL_write(ssl, message, strlen(message));
+    }else {
+        SSL_write(ssl, SENDALL, strlen(SENDALL));
+        SSL_write(ssl, message, strlen(message));
+    }
 }
 
 void *recv_msg_handler()
@@ -96,8 +100,8 @@ int connectToServer(char *username, char *password, char *isLoginForm)
         show_info(msg);
         int rc = 0;
         int i = 0;
-        changeWidget(authBox, chatBox);
         rc = pthread_create(&watcher, NULL, recv_msg_handler, (void *)i);
+        changeWidget(authBox, chatBox);
         if (rc)
         {
             printf("Error:unable to create thread, %d\n", rc);
