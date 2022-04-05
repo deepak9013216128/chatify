@@ -11,18 +11,17 @@ void loginButtonHandler(GtkWidget *widget, gpointer data)
     (void)data;
     if (!gtk_widget_get_sensitive(loginButton))
         return;
-    const gchar *ip, *port, *username, *password;
+    const gchar *ip, *port, username[BUFSIZ], password[BUFSIZ];
     if (isEmptyText(loginUserNameEntry) || isEmptyText(loginPasswordEntry))
     {
         return;
     }
 
-    username = gtk_entry_get_text(GTK_ENTRY(loginUserNameEntry));
-    password = gtk_entry_get_text(GTK_ENTRY(loginPasswordEntry));
-
-    // gtk_widget_set_sensitive(loginButton, 0);
+    strcpy(username, gtk_entry_get_text(GTK_ENTRY(loginUserNameEntry)));
+    strcpy(password, gtk_entry_get_text(GTK_ENTRY(loginPasswordEntry)));
+    gtk_entry_set_text(GTK_ENTRY(loginUserNameEntry), "");
+    gtk_entry_set_text(GTK_ENTRY(loginPasswordEntry), "");
     connectToServer(username, password, LOGIN);
-    // gtk_widget_set_sensitive(loginButton, 1);
 }
 
 void loginForm(GtkWidget *window)

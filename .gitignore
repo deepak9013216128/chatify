@@ -1,13 +1,13 @@
-./chat_client
+chat_client
 
-./chat_server
+chat_server
 
-./user.db
+user.db
 
-./mycert.pem
+mycert.pem
 
-./chat_client.d 
+chat_client.d 
 
-./chat_server.d
+chat_server.d
 
 .vscode
