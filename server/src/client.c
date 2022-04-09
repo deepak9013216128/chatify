@@ -1,3 +1,4 @@
+#include <ctype.h>
 #include "client.h"
 #include "sql.h"
 #include "path.h"
@@ -275,6 +276,59 @@ void handle_who(client_t *cli)
 	memset(res,0,sizeof(res));
 	pthread_mutex_unlock(&clients_mutex);
 }
+
+/* Responds to clients requesting a private message to another user.
+ * If the user does not exist(or has no nickname), the client will
+ * be notified.  */
+void handle_say(client_t *cli, char *buff)
+{
+	pthread_mutex_lock(&clients_mutex);
+	// Initialize data types
+	char receiver[BUFFER_SZ];
+	char message[BUFFER_SZ];
+	strcpy(message, "[");
+	strcat(message, cli->name);
+	strcat(message, "] => ");
+
+	/* Parse through the buffer and find the receiver
+	 * of the message and the message to send */
+	int i = strlen(SAY);
+	while (buff[i] != '\0' && isspace(buff[i])) {i++;}
+	int j = i+1;
+	while (buff[j] != '\0' && isgraph(buff[j])) {j++;}
+
+	strncpy(receiver,buff+i, j-i);
+	strncat(message,buff+j+1,strlen(buff));
+	puts(message);
+	str_overwrite_stdout();
+	puts(receiver);
+	if(strlen(receiver) >0 && strlen(message) >0){
+		for (int i = 0; i < MAX_CLIENTS; ++i)
+		{
+			if (clients[i] && strcmp(clients[i]->name, receiver)==0 )
+			{	
+				if(SSL_write(clients[i]->ssl,message,BUFFER_SZ) <=0 ){
+					perror("ERROR: write to descriptor failed");
+				}
+				memset(receiver,0,sizeof(receiver));
+				memset(message,0,sizeof(message));
+				
+				pthread_mutex_unlock(&clients_mutex);
+				return;
+			}
+		}
+
+	}
+	if(SSL_write(cli->ssl,"sent failed",BUFFER_SZ) <=0 ){
+		perror("ERROR: write to descriptor failed");
+	}
+
+	memset(receiver,0,sizeof(receiver));
+	memset(message,0,sizeof(message));
+	
+	pthread_mutex_unlock(&clients_mutex);
+}
+
 /* Handle all communication with the client */
 void *handle_client(void *arg)
 {
@@ -296,6 +350,8 @@ void *handle_client(void *arg)
 				send_all(cli);
 			else if (strncmp(buff_out, WHO, strlen(WHO)) == 0)
 				handle_who(cli);
+			else if (strncmp(buff_out, SAY, strlen(SAY)) == 0)
+				handle_say(cli,buff_out);
 			else if (strncmp(buff_out, LOGOUT, strlen(LOGOUT)) == 0)
 			{
 				memset(buff_out, 0, sizeof(buff_out));
@@ -317,5 +373,5 @@ void *handle_client(void *arg)
 		}
 	}
 
-	return NULL;
+	return;
 }

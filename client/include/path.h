@@ -5,3 +5,4 @@
 #define SENDALL "/sendall"
 #define LOGOUT "/logout"
 #define WHO "/who"
+#define SAY "/say"

@@ -46,6 +46,8 @@ void send_msg_handler(gchar *message)
     }
     else if(strncmp(message,WHO,strlen(WHO))==0){
         SSL_write(ssl, message, strlen(message));
+    }else if(strncmp(message,SAY,strlen(SAY))==0){
+        SSL_write(ssl, message, strlen(message));
     }else {
         SSL_write(ssl, SENDALL, strlen(SENDALL));
         SSL_write(ssl, message, strlen(message));
