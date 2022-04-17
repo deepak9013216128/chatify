@@ -8,7 +8,7 @@
 #include "ssl.h"
 
 #define MAX_CLIENTS 100
-#define BUFFER_SZ 1024
+#define BUFFER_SZ 2048
 
 /* Client structure */
 typedef struct
@@ -18,6 +18,9 @@ typedef struct
 	int uid;
 	char name[32];
 	SSL *ssl;
+	char aes_key[33];
+	EVP_CIPHER_CTX *en;
+	EVP_CIPHER_CTX *de;
 } client_t;
 
 void str_overwrite_stdout();

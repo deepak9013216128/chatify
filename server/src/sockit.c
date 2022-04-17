@@ -83,14 +83,18 @@ int listenSocktetConnection(){
             continue;    
         }
         ShowCerts(ssl);        /* get any certificates */
-        
+        char aes_key[33];
+        if(SSL_read(ssl, aes_key, sizeof(aes_key))<=0){
+            perror("ERROR: read to descriptor failed");
+            continue;
+        }
         /* Client settings */
         client_t *cli = (client_t *)malloc(sizeof(client_t));
         cli->address = cli_addr;
         cli->sockfd = connfd;
         cli->uid = uid++;
         cli->ssl = ssl;
-
+        strcpy(cli->aes_key, aes_key);
         pthread_create(&tid, NULL, &handle_client, (void*)cli);
 
         /* Reduce CPU usage */

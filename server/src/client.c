@@ -2,6 +2,7 @@
 #include "client.h"
 #include "sql.h"
 #include "path.h"
+#include "aes.h"
 
 unsigned int cli_count = 0;
 int uid = 10;
@@ -76,14 +77,14 @@ void queue_remove(int uid)
 void send_message_to_all(char *s, int uid)
 {
 	pthread_mutex_lock(&clients_mutex);
-
 	for (int i = 0; i < MAX_CLIENTS; ++i)
 	{
 		if (clients[i])
 		{
 			if (clients[i]->uid != uid)
 			{
-				if (SSL_write(clients[i]->ssl, s, BUFFER_SZ) <= 0)
+				strcpy(buff_out, aes_enc(clients[i], s));
+				if (send(clients[i]->sockfd, buff_out, BUFFER_SZ, 0) <= 0)
 				{
 					perror("ERROR: write to descriptor failed");
 					break;
@@ -97,14 +98,14 @@ void send_message_to_all(char *s, int uid)
 void send_message(char *s, int uid)
 {
 	pthread_mutex_lock(&clients_mutex);
-
 	for (int i = 0; i < MAX_CLIENTS; ++i)
 	{
 		if (clients[i])
 		{
 			if (clients[i]->uid != uid)
 			{
-				if (SSL_write(clients[i]->ssl, s, BUFFER_SZ) <= 0)
+				strcpy(buff_out, aes_enc(clients[i], s));
+				if (send(clients[i]->sockfd, buff_out, BUFFER_SZ, 0) <= 0)
 				{
 					perror("ERROR: write to descriptor failed");
 					break;
@@ -121,6 +122,7 @@ void delete_client(client_t *cli)
 	/* Delete client from queue and yield thread */
 	close(cli->sockfd);
 	queue_remove(cli->uid);
+	// delete_aes(cli);
 	free(cli);
 	cli_count--;
 	pthread_detach(pthread_self());
@@ -131,10 +133,14 @@ void login(client_t *cli)
 	memset(username, 0, sizeof(username));
 	memset(password, 0, sizeof(password));
 	memset(buff_out, 0, sizeof(buff_out));
-
+	// int bytes;
+	// bytes = recv(cli->sockfd, username, BUFFER_SZ, 0);
+	// printf("%d", bytes);
+	// bytes = recv(cli->sockfd, password, BUFFER_SZ, 0);
+	// printf("%d", bytes);
 	if (
-		SSL_read(cli->ssl, username, sizeof(username)) <= 0 ||
-		SSL_read(cli->ssl, password, sizeof(password)) <= 0)
+		recv(cli->sockfd, username, BUFFER_SZ, 0) <= 0 ||
+		recv(cli->sockfd, password, BUFFER_SZ, 0) <= 0)
 	{
 		delete_client(cli);
 		return;
@@ -143,12 +149,16 @@ void login(client_t *cli)
 	if (strlen(username) < 2 && strlen(password) < 2)
 	{
 		printf("Didn't enter the name and password.\n");
-		SSL_write(cli->ssl, loginFailed, sizeof(loginFailed));
+		strcpy(buff_out, aes_enc(cli, loginFailed));
+		send(cli->sockfd, buff_out, BUFFER_SZ, 0);
 		return;
 	}
 
 	memset(query, 0, sizeof(query));
 	memset(buff_out, 0, sizeof(buff_out));
+
+	strcpy(username, aes_dec(cli, username));
+	strcpy(password, aes_dec(cli, password));
 
 	strcat(query, "SELECT password from Users WHERE username = '");
 	strcat(query, username);
@@ -161,7 +171,8 @@ void login(client_t *cli)
 	int step = sqlite3_step(res);
 	if (step != SQLITE_ROW)
 	{
-		SSL_write(cli->ssl, loginFailed, sizeof(loginFailed));
+		strcpy(buff_out, aes_enc(cli, loginFailed));
+		send(cli->sockfd, buff_out, BUFFER_SZ, 0);
 		return;
 	}
 	const char *dbPassword = (const char *)sqlite3_column_text(res, 0);
@@ -171,14 +182,17 @@ void login(client_t *cli)
 		/* Add client to the queue and fork thread */
 		queue_add(cli);
 
-		sprintf(buff_out, "%s has joined\n", username);
 		str_overwrite_stdout();
 		strcpy(cli->name, username);
-		SSL_write(cli->ssl, success, sizeof(success));
+		strcpy(buff_out, aes_enc(cli, success));
+		send(cli->sockfd, buff_out, BUFFER_SZ, 0);
+		memset(buff_out, 0, sizeof(buff_out));
+		sprintf(buff_out, "%s has joined\n", username);
 		send_message_to_all(buff_out, cli->uid);
 		return;
 	}
-	SSL_write(cli->ssl, loginFailed, sizeof(loginFailed));
+	strcpy(buff_out, aes_enc(cli, success));
+	send(cli->sockfd, buff_out, BUFFER_SZ, 0);
 	return;
 }
 
@@ -189,8 +203,8 @@ void signup(client_t *cli)
 	memset(buff_out, 0, sizeof(buff_out));
 
 	if (
-		SSL_read(cli->ssl, username, sizeof(username)) <= 0 ||
-		SSL_read(cli->ssl, password, sizeof(password)) <= 0)
+		recv(cli->sockfd, username, BUFFER_SZ, 0) <= 0 ||
+		recv(cli->sockfd, password, BUFFER_SZ, 0) <= 0)
 	{
 		delete_client(cli);
 		return;
@@ -199,12 +213,16 @@ void signup(client_t *cli)
 	if (strlen(username) < 2 && strlen(password) < 2)
 	{
 		printf("Didn't enter the name and password.\n");
-		SSL_write(cli->ssl, loginFailed, sizeof(loginFailed));
+		strcpy(buff_out, aes_enc(cli, loginFailed));
+		send(cli->sockfd, buff_out, BUFFER_SZ, 0);
 		return;
 	}
 
 	memset(buff_out, 0, sizeof(buff_out));
 	memset(query, 0, sizeof(query));
+
+	strcpy(username, aes_dec(cli, username));
+	strcpy(password, aes_dec(cli, password));
 
 	strcat(query, "INSERT INTO Users (username, password, ip, port) VALUES('");
 	strcat(query, username);
@@ -219,9 +237,10 @@ void signup(client_t *cli)
 	queue_add(cli);
 
 	strcpy(cli->name, username);
+	strcpy(buff_out, aes_enc(cli, success));
+	send(cli->sockfd, buff_out, BUFFER_SZ, 0);
 	sprintf(buff_out, "%s has joined\n", cli->name);
 	str_overwrite_stdout();
-	SSL_write(cli->ssl, success, sizeof(success));
 	send_message_to_all(buff_out, cli->uid);
 	return;
 }
@@ -231,19 +250,21 @@ void send_all(client_t *cli)
 
 	memset(buff_out, 0, sizeof(buff_out));
 	char msg[BUFFER_SZ];
+	memset(msg, 0, sizeof(msg));
 	strcat(msg, "[");
 	strcat(msg, cli->name);
 	strcat(msg, "]: ");
-	int receive = SSL_read(cli->ssl, buff_out, BUFFER_SZ);
+	int receive = recv(cli->sockfd, buff_out, BUFFER_SZ, 0);
 	if (receive > 0)
 	{
+		strcpy(buff_out, aes_dec(cli, buff_out));
 		if (strlen(buff_out) > 0)
 		{
 			strcat(msg, buff_out);
 			send_message_to_all(msg, cli->uid);
 
 			str_trim_lf(buff_out, strlen(buff_out));
-			printf("%s -> %s\n", buff_out, cli->name);
+			printf("%s -> %s\n", msg, cli->name);
 		}
 	}
 	else
@@ -252,7 +273,6 @@ void send_all(client_t *cli)
 	}
 
 	memset(buff_out, 0, sizeof(buff_out));
-	memset(msg, 0, sizeof(msg));
 }
 
 void handle_who(client_t *cli)
@@ -260,6 +280,7 @@ void handle_who(client_t *cli)
 
 	pthread_mutex_lock(&clients_mutex);
 	char res[BUFFER_SZ];
+	memset(res,0,sizeof(res));
 	strcat(res, "List of online user are:\n");
 	for (int i = 0; i < MAX_CLIENTS; ++i)
 	{
@@ -269,11 +290,12 @@ void handle_who(client_t *cli)
 			strcat(res, " \n");
 		}
 	}
-	if (SSL_write(cli->ssl, res, BUFFER_SZ) <= 0)
+	strcpy(buff_out, aes_enc(cli, res));
+	if (send(cli->sockfd, buff_out, BUFFER_SZ, 0) <= 0)
 	{
 		perror("ERROR: write to descriptor failed");
 	}
-	memset(res,0,sizeof(res));
+	memset(res, 0, sizeof(res));
 	pthread_mutex_unlock(&clients_mutex);
 }
 
@@ -286,6 +308,8 @@ void handle_say(client_t *cli, char *buff)
 	// Initialize data types
 	char receiver[BUFFER_SZ];
 	char message[BUFFER_SZ];
+	memset(message,0,sizeof(message));
+	memset(receiver,0,sizeof(receiver));
 	strcpy(message, "[");
 	strcat(message, cli->name);
 	strcat(message, "] => ");
@@ -293,39 +317,49 @@ void handle_say(client_t *cli, char *buff)
 	/* Parse through the buffer and find the receiver
 	 * of the message and the message to send */
 	int i = strlen(SAY);
-	while (buff[i] != '\0' && isspace(buff[i])) {i++;}
-	int j = i+1;
-	while (buff[j] != '\0' && isgraph(buff[j])) {j++;}
+	while (buff[i] != '\0' && isspace(buff[i]))
+	{
+		i++;
+	}
+	int j = i + 1;
+	while (buff[j] != '\0' && isgraph(buff[j]))
+	{
+		j++;
+	}
 
-	strncpy(receiver,buff+i, j-i);
-	strncat(message,buff+j+1,strlen(buff));
+	strncpy(receiver, buff + i, j - i);
+	strncat(message, buff + j + 1, strlen(buff));
 	puts(message);
 	str_overwrite_stdout();
 	puts(receiver);
-	if(strlen(receiver) >0 && strlen(message) >0){
+	if (strlen(receiver) > 0 && strlen(message) > 0)
+	{
 		for (int i = 0; i < MAX_CLIENTS; ++i)
 		{
-			if (clients[i] && strcmp(clients[i]->name, receiver)==0 )
-			{	
-				if(SSL_write(clients[i]->ssl,message,BUFFER_SZ) <=0 ){
+			if (clients[i] && strcmp(clients[i]->name, receiver) == 0)
+			{
+				strcpy(buff_out, aes_enc(clients[i], message));
+				if (send(clients[i]->sockfd, buff_out, BUFFER_SZ, 0) <= 0)
+				{
 					perror("ERROR: write to descriptor failed");
 				}
-				memset(receiver,0,sizeof(receiver));
-				memset(message,0,sizeof(message));
-				
+				memset(receiver, 0, sizeof(receiver));
+				memset(message, 0, sizeof(message));
+
 				pthread_mutex_unlock(&clients_mutex);
 				return;
 			}
 		}
-
 	}
-	if(SSL_write(cli->ssl,"sent failed",BUFFER_SZ) <=0 ){
+	strcpy(buff_out, aes_enc(cli, "sent failed"));
+	if (send(cli->sockfd, buff_out, BUFFER_SZ, 0) <= 0)
+	{
 		perror("ERROR: write to descriptor failed");
 	}
 
-	memset(receiver,0,sizeof(receiver));
-	memset(message,0,sizeof(message));
-	
+	memset(receiver, 0, sizeof(receiver));
+	memset(message, 0, sizeof(message));
+
 	pthread_mutex_unlock(&clients_mutex);
 }
 
@@ -335,12 +369,15 @@ void *handle_client(void *arg)
 
 	cli_count++;
 	client_t *cli = (client_t *)arg;
-
+	aes(cli);
 	while (1)
 	{
 		memset(buff_out, 0, sizeof(buff_out));
-		if (SSL_read(cli->ssl, buff_out, sizeof(buff_out) - 1) > 0)
+		if (recv(cli->sockfd, buff_out, BUFFER_SZ, 0) > 0)
 		{
+
+			strcpy(buff_out, aes_dec(cli, buff_out));
+			puts(buff_out);
 			// Cases of different requests. Else case serves for standard messages.
 			if (strncmp(buff_out, LOGIN, strlen(LOGIN)) == 0)
 				login(cli);
@@ -351,9 +388,12 @@ void *handle_client(void *arg)
 			else if (strncmp(buff_out, WHO, strlen(WHO)) == 0)
 				handle_who(cli);
 			else if (strncmp(buff_out, SAY, strlen(SAY)) == 0)
-				handle_say(cli,buff_out);
+				handle_say(cli, buff_out);
 			else if (strncmp(buff_out, LOGOUT, strlen(LOGOUT)) == 0)
 			{
+				memset(buff_out, 0, sizeof(buff_out));
+				strcpy(buff_out, aes_enc(cli, "Logout successfully"));
+				send(cli->sockfd, buff_out, BUFFER_SZ, 0);
 				memset(buff_out, 0, sizeof(buff_out));
 				sprintf(buff_out, "%s has left\n", cli->name);
 				str_overwrite_stdout();
@@ -371,6 +411,7 @@ void *handle_client(void *arg)
 			delete_client(cli); // Assumed dead
 			break;
 		}
+		memset(buff_out, 0, sizeof(buff_out));
 	}
 
 	return;
