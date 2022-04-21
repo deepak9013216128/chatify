@@ -4,6 +4,7 @@
 #include "auth.h"
 #include "ssl.h"
 #include "path.h"
+#include "aes.h"
 
 #define LENGTH 2048
 
@@ -14,6 +15,8 @@ int sockfd = 0;
 char name[32];
 pthread_t watcher;
 SSL *ssl;
+char buff[LENGTH];
+int loginStatus = 0;
 
 void str_overwrite_stdout()
 {
@@ -36,7 +39,7 @@ void str_trim_lf(char *arr, int length)
 
 void send_msg_handler(gchar *message)
 {
-    g_print(message);
+    memset(buff, 0, strlen(buff));
     if (strcmp(message, "exit") == 0)
     {
         close(sockfd);
@@ -44,13 +47,24 @@ void send_msg_handler(gchar *message)
         exit(0);
         return;
     }
-    else if(strncmp(message,WHO,strlen(WHO))==0){
-        SSL_write(ssl, message, strlen(message));
-    }else if(strncmp(message,SAY,strlen(SAY))==0){
-        SSL_write(ssl, message, strlen(message));
-    }else {
-        SSL_write(ssl, SENDALL, strlen(SENDALL));
-        SSL_write(ssl, message, strlen(message));
+    else if (strncmp(message, WHO, strlen(WHO)) == 0)
+    {
+        strcpy(buff, aes_enc(message));
+        send(sockfd, buff, LENGTH, 0);
+    }
+    else if (strncmp(message, SAY, strlen(SAY)) == 0)
+    {
+        strcpy(buff, aes_enc(message));
+        send(sockfd, buff, LENGTH, 0);
+    }
+    else
+    {
+        strcpy(buff, aes_enc(SENDALL));
+        send(sockfd, buff, LENGTH, 0);
+
+        memset(buff, 0, strlen(buff));
+        strcpy(buff, aes_enc(message));
+        send(sockfd, buff, LENGTH, 0);
     }
 }
 
@@ -60,14 +74,16 @@ void *recv_msg_handler()
     while (1)
     {
         memset(msg, 0, sizeof(msg));
-        int receive = SSL_read(ssl, msg, sizeof(msg));
-        if (receive > 0)
+
+        int receive = recv(sockfd, msg, LENGTH, 0);
+        strcpy(msg, aes_dec(msg));
+        if (receive > 0 && loginStatus == 1)
         {
             puts(msg);
             recv_item(msg);
             str_overwrite_stdout();
         }
-        else if (receive == 0)
+        else
         {
             break;
         }
@@ -79,7 +95,10 @@ void *recv_msg_handler()
 void logout()
 {
     g_print("logout");
-    SSL_write(ssl, LOGOUT, sizeof(LOGOUT));
+    strcpy(buff, aes_enc(LOGOUT));
+    send(sockfd, buff, LENGTH, 0);
+    loginStatus = 0;
+    // pthread_kill(watcher, SIGUSR1);
     pthread_detach(watcher);
     // closeWindow();
     changeWidget(chatBox, authBox);
@@ -88,17 +107,24 @@ void logout()
 int connectToServer(char *username, char *password, char *isLoginForm)
 {
 
-    SSL_write(ssl, isLoginForm, sizeof(isLoginForm));
-    SSL_write(ssl, username, sizeof(username));
-    SSL_write(ssl, password, sizeof(password));
-    g_print("reading");
-    char msg[100];
-    int bytes;
-    bytes = SSL_read(ssl, msg, sizeof(msg));
+    strcpy(buff, aes_enc(isLoginForm));
+    send(sockfd, buff, LENGTH, 0);
 
+    strcpy(buff, aes_enc(username));
+    send(sockfd, buff, LENGTH, 0);
+
+    strcpy(buff, aes_enc(password));
+    send(sockfd, buff, LENGTH, 0);
+    memset(buff, 0, sizeof(buff));
+    g_print("reading");
+    char msg[LENGTH];
+    int bytes;
+    bytes = recv(sockfd, msg, LENGTH, 0);
+    strcpy(msg, aes_dec(msg));
     g_print(msg);
     if (bytes > 0 && strcmp(msg, "success") == 0)
     {
+        loginStatus = 1;
         show_info(msg);
         int rc = 0;
         int i = 0;
@@ -163,6 +189,10 @@ int createSockit(int argc, char *argv[])
 
     printf("=== WELCOME TO THE CHATROOM ===\n");
 
+    char *aes_key;
+    aes_key = gen_rand_string();
+    aes(aes_key);
+    SSL_write(ssl, aes_key, strlen(aes_key));
     // close(sockfd);          close socket
     // SSL_CTX_free(ctx);        /* release context */
 
